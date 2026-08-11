@@ -9,6 +9,9 @@ import { UserOutlined, LockOutlined, LoginOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { CENTERS } from '../../mock/dictionaries';
 import { usePatientStore } from '../../store/PatientContext';
+import { apiLogin } from '../../api/client';
+import { setToken } from '../../api/http';
+import { apiErrorText } from '../../api/http';
 import type { CenterId } from '../../types/patient';
 
 interface FormValues {
@@ -22,15 +25,27 @@ export default function Login() {
   const { dispatch } = usePatientStore();
   const navigate = useNavigate();
 
-  const onFinish = (v: FormValues) => {
+  const onFinish = async (v: FormValues) => {
     setLoading(true);
-    // Mock：任意账号即可登录
-    setTimeout(() => {
-      dispatch({ type: 'LOGIN', payload: { username: v.username, centerId: v.centerId } });
-      setLoading(false);
+    try {
+      // 真实后端登录：验证用户名/密码/研究中心
+      const { token, user } = await apiLogin(v.username, v.password, v.centerId);
+      setToken(token.access_token);
+      dispatch({
+        type: 'LOGIN',
+        payload: {
+          username: user.username,
+          centerId: v.centerId,
+          role: user.role === 'admin' ? 'admin' : 'doctor',
+        },
+      });
       message.success('登录成功');
       navigate('/');
-    }, 300);
+    } catch (e) {
+      message.error(apiErrorText(e));
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -83,7 +98,7 @@ export default function Login() {
           </Form.Item>
           <Space style={{ marginTop: 8 }} direction="vertical">
             <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-              Demo 说明：任意用户名 / 密码均可登录
+              测试账号：admin / admin@crf2026，doctor01‑04 / Doctor@0系列（详见后端已建用户）
             </Typography.Text>
           </Space>
         </Form>

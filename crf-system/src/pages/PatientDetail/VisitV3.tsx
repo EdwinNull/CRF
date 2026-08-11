@@ -4,12 +4,12 @@
  * 在 V2 全部模块基础上，额外在「药物评分」之后、「药物回收与发放」之前
  * 插入「实验室检查」LabResultsForm（血常规 + 尿常规 + 血生化）。
  */
-import { useEffect } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { DatePicker, Form, Radio, Space, Typography, message } from 'antd';
 import dayjs, { type Dayjs } from 'dayjs';
 import { usePatient } from '../../utils/usePatient';
 import { usePatientStore } from '../../store/PatientContext';
-import { emptyVisit, zeroMed } from '../../mock/patients';
+import { emptyVisit, zeroMed, aeId } from '../../mock/patients';
 import type {
   VisitData,
   VitalSigns,
@@ -24,6 +24,7 @@ import type {
   LabUrinalysis,
   LabBiochemistry,
 } from '../../types/visit';
+import type { AdverseEvent } from '../../types/adverseEvent';
 import FormSection from '../../components/FormSection';
 import VitalSignsForm from '../../components/VitalSignsForm';
 import VASSlider from '../../components/VASSlider';
@@ -35,6 +36,7 @@ import DrugRecoveryForm from '../../components/DrugRecoveryForm';
 import EfficacyForm from '../../components/EfficacyForm';
 import LabResultsForm from '../../components/LabResultsForm';
 import VisitFormFooter from '../../components/VisitFormFooter';
+import AdverseEventModal from '../../components/AdverseEventModal';
 
 const { Title } = Typography;
 
@@ -107,6 +109,35 @@ export default function VisitV3() {
   // 疗效基线：V1 中医证候总分
   const baselineScore = patient?.visits['V1']?.tcmScores.total ?? 0;
 
+  /* ---------------- 不良事件弹窗触发 ---------------- */
+  const [aeModalOpen, setAeModalOpen] = useState(false);
+  const hasAE = Form.useWatch('hasAdverseEvent', form);
+  const prevHasAERef = useRef<boolean | undefined>(undefined);
+  useEffect(() => {
+    const prev = prevHasAERef.current;
+    prevHasAERef.current = hasAE;
+    if (locked) return;
+    if (prev === false && hasAE === true) {
+      setAeModalOpen(true);
+    }
+  }, [hasAE, locked]);
+
+  const handleAESave = (payload: AdverseEvent) => {
+    if (!patient) return;
+    const seqNo = patient.adverseEvents.length
+      ? Math.max(...patient.adverseEvents.map((x) => x.seqNo)) + 1
+      : 1;
+    const next: AdverseEvent = { ...payload, id: aeId(), seqNo };
+    dispatch({ type: 'ADD_ADVERSE_EVENT', payload: { patientId: patient.id, event: next } });
+    setAeModalOpen(false);
+    message.success(`已同步新增不良事件（编号 ${seqNo}）`);
+  };
+  const handleAECancel = () => {
+    setAeModalOpen(false);
+    form.setFieldValue('hasAdverseEvent', false);
+    prevHasAERef.current = false;
+  };
+
   // 初始化：把访视对象按命名空间回填进 Form，缺失给默认值
   useEffect(() => {
     if (!patient) return;
@@ -168,7 +199,8 @@ export default function VisitV3() {
   if (!patient) return null;
 
   return (
-    <Form form={form} layout="vertical" disabled={locked} requiredMark>
+    <>
+      <Form form={form} layout="vertical" disabled={locked} requiredMark>
       <Title level={4} style={{ marginTop: 0 }}>V3 治疗期（D14）</Title>
 
       {/* 1. 访视日期 */}
@@ -277,5 +309,13 @@ export default function VisitV3() {
 
       <VisitFormFooter onSave={handleSave} onSubmit={handleSubmit} />
     </Form>
+
+    <AdverseEventModal
+      open={aeModalOpen}
+      initial={null}
+      onSave={handleAESave}
+      onCancel={handleAECancel}
+    />
+    </>
   );
 }

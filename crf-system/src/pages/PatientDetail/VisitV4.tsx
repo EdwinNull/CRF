@@ -18,13 +18,15 @@
  *
  * submitted -> 全表单只读（Form disabled + 控件显式 disabled）。
  */
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import { DatePicker, Form, Radio, Space, Tag, Typography, message } from 'antd';
 import dayjs, { type Dayjs } from 'dayjs';
 import { useParams } from 'react-router-dom';
 import { usePatientStore } from '../../store/PatientContext';
+import { aeId } from '../../mock/patients';
 import type { LabModule } from '../../components/componentTypes';
 import type { VisitData } from '../../types/visit';
+import type { AdverseEvent } from '../../types/adverseEvent';
 import FormSection from '../../components/FormSection';
 import VitalSignsForm from '../../components/VitalSignsForm';
 import SymptomScoreCard from '../../components/SymptomScoreCard';
@@ -36,6 +38,7 @@ import DrugRecoveryForm from '../../components/DrugRecoveryForm';
 import EfficacyForm from '../../components/EfficacyForm';
 import LabResultsForm from '../../components/LabResultsForm';
 import VisitFormFooter from '../../components/VisitFormFooter';
+import AdverseEventModal from '../../components/AdverseEventModal';
 
 const { Text } = Typography;
 
@@ -85,6 +88,36 @@ export default function VisitV4() {
   /** 当前中医证候总分（实时监听本访视 tcmScores），供疗效评估实时派生 */
   const watchedTcm = Form.useWatch('tcmScores', form);
   const currentScore = watchedTcm?.total ?? visit?.tcmScores?.total ?? 0;
+
+  /* ---------------- 不良事件弹窗触发 ---------------- */
+  // 上次访视后情况 hasAdverseEvent 选"是" → 弹 AE 表单 → 保存后同步到不良事件列表
+  const [aeModalOpen, setAeModalOpen] = useState(false);
+  const hasAE = Form.useWatch('hasAdverseEvent', form);
+  const prevHasAERef = useRef<boolean | undefined>(undefined);
+  useEffect(() => {
+    const prev = prevHasAERef.current;
+    prevHasAERef.current = hasAE;
+    if (disabled) return;
+    if (prev === false && hasAE === true) {
+      setAeModalOpen(true);
+    }
+  }, [hasAE, disabled]);
+
+  const handleAESave = (payload: AdverseEvent) => {
+    if (!patient) return;
+    const seqNo = patient.adverseEvents.length
+      ? Math.max(...patient.adverseEvents.map((x) => x.seqNo)) + 1
+      : 1;
+    const next: AdverseEvent = { ...payload, id: aeId(), seqNo };
+    dispatch({ type: 'ADD_ADVERSE_EVENT', payload: { patientId: patient.id, event: next } });
+    setAeModalOpen(false);
+    message.success(`已同步新增不良事件（编号 ${seqNo}）`);
+  };
+  const handleAECancel = () => {
+    setAeModalOpen(false);
+    form.setFieldValue('hasAdverseEvent', false);
+    prevHasAERef.current = false;
+  };
 
   /** 首次挂载时用 store 数据回填表单 initialValues */
   const initial = useMemo<V4FormValues>(() => {
@@ -292,6 +325,13 @@ export default function VisitV4() {
       {!disabled && (
         <VisitFormFooter submitting={submitting} onSave={handleSave} onSubmit={handleSubmit} />
       )}
+
+      <AdverseEventModal
+        open={aeModalOpen}
+        initial={null}
+        onSave={handleAESave}
+        onCancel={handleAECancel}
+      />
     </div>
   );
 }

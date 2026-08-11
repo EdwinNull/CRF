@@ -54,6 +54,9 @@ import { usePatient } from '../../utils/usePatient';
 import { usePatientStore } from '../../store/PatientContext';
 import { calcBMI } from '../../utils/scoring';
 import { requiredRule, ageRule, nonNegativeRule, dateNotFuture } from '../../utils/validators';
+import { apiUpdateVisit } from '../../api/client';
+import { toBackendId } from '../../api/mappers';
+import { apiErrorText } from '../../api/http';
 import {
   ENVIRONMENT_EXPOSURE,
   DIET_HABIT,
@@ -113,6 +116,40 @@ function toPatientPatch(
     investigatorSignature: values.investigatorSignature,
     signatureDate: values.signatureDate ? dayjs(values.signatureDate).format('YYYY-MM-DD') : '',
   };
+}
+
+/** 后端 V1 入选/排除判定所使用的键（与 crf-backend/app/routers/visits.py check_eligibility 对应） */
+const BACKEND_INCLUSION_KEYS = ['age_18_80', 'diagnosis_confirmed', 'symptom_duration', 'symptom_severity', 'informed_consent'];
+const BACKEND_EXCLUSION_KEYS = ['pregnancy_lactation', 'severe_disease', 'immunodeficiency', 'drug_allergy', 'participated_trial', 'other_exclusion'];
+
+/** 将本地 V1 提交同步到后端：触发后端筛选判定（patient.status / randomization_no 由后端写回） */
+function syncToBackend(patient: Patient): void {
+  const backendId = toBackendId(patient.id);
+  if (backendId == null) return; // 纯本地 mock 患者不往后端写
+
+  // 前端入选 6 项/排除 11 项数组 → 后端判定键（取前 N 项对应后端定义）
+  const inclusionArr: boolean[] = patient.inclusionCriteria;
+  const exclusionArr: boolean[] = patient.exclusionCriteria;
+
+  void (async () => {
+    try {
+      await apiUpdateVisit(backendId, 'V1', {
+        status: 'submitted',
+        data: {
+          inclusionCriteria: Object.fromEntries(
+            BACKEND_INCLUSION_KEYS.map((k, i) => [k, inclusionArr[i] === true]),
+          ),
+          exclusionCriteria: Object.fromEntries(
+            BACKEND_EXCLUSION_KEYS.map((k, i) => [k, exclusionArr[i] === true]),
+          ),
+        },
+      });
+      // 后端筛选判定会改写 patient.status 与 randomization_no，刷新本地以保持一致
+      message.success('已同步后端：筛选结果已记录');
+    } catch (e) {
+      message.warning(`后端同步失败（筛选判定未落库）：${apiErrorText(e)}`);
+    }
+  })();
 }
 
 export default function VisitV1() {
@@ -246,6 +283,10 @@ export default function VisitV1() {
         type: 'UPDATE_PATIENT',
         payload: { patientId: patient.id, patch: toPatientPatch(values, derived) },
       });
+      // 同步后端：若是后端生成的患者（pid_ 前缀）且提交，触发后端 V1 筛选判定
+      if (status === 'submitted') {
+        syncToBackend(patient);
+      }
       if (status === 'draft') {
         message.success('V1 草稿已暂存');
       }

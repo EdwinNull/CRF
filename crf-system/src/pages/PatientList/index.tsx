@@ -2,7 +2,7 @@
  * 患者列表页 (plan.md §5.2)
  * Layout + 顶部操作栏 + 状态 Tag + 访视进度 + 新建患者 Modal。
  */
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Table, Tag, Button, Input, Select, Space, Modal, Form, Progress, message, Typography,
 } from 'antd';
@@ -11,8 +11,9 @@ import { useNavigate } from 'react-router-dom';
 import type { ColumnsType } from 'antd/es/table';
 import { usePatientStore, useCurrentUser } from '../../store/PatientContext';
 import { CENTER_NAME } from '../../mock/dictionaries';
-import { uid, emptyVisit } from '../../mock/patients';
-import { calcBMI } from '../../mock/seedHelpers';
+import { apiListPatients, apiCreatePatient } from '../../api/client';
+import { backendToPatient, mergeSeedIntoBackend } from '../../api/mappers';
+import { apiErrorText } from '../../api/http';
 import type { Patient, PatientStatus, CenterId } from '../../types/patient';
 import type { VisitNo } from '../../types/visit';
 
@@ -45,8 +46,29 @@ export default function PatientList() {
   const [modalOpen, setModalOpen] = useState(false);
   const [form] = Form.useForm();
 
+  // 挂载时从后端拉取患者列表，与本地 seed 富数据按筛选号合并（覆盖纯 mock）
+  const [loading, setLoading] = useState(true);
+  const loadFromBackend = async () => {
+    try {
+      setLoading(true);
+      const list = await apiListPatients({ center_id: user?.role === 'admin' ? undefined : user?.centerId });
+      // 后端患者档案 + 本地 seed 富数据合并：保留富表单特征，同时获得后端 id/中心隔离
+      const merged = mergeSeedIntoBackend(state.patients, list);
+      dispatch({ type: 'LOAD_PATIENTS', payload: merged });
+    } catch (e) {
+      message.error(apiErrorText(e));
+    } finally {
+      setLoading(false);
+    }
+  };
+  useEffect(() => {
+    loadFromBackend();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const filtered = useMemo(() => {
-    return state.patients.filter((p) => {
+    const source = state.patients;
+    return source.filter((p) => {
       const kw = keyword.trim().toLowerCase();
       const matchKw =
         !kw || p.screeningNo.toLowerCase().includes(kw) || p.randomNo.includes(kw) || p.nameAbbr.toLowerCase().includes(kw);
@@ -89,49 +111,37 @@ export default function PatientList() {
   ];
 
   const onCreate = () => {
-    form.validateFields().then((vals) => {
+    form.validateFields().then(async (vals) => {
       const centerId = (user?.centerId ?? '01') as CenterId;
       const weight = vals.weight as number;
       const height = vals.height as number;
       const nameAbbr = String(vals.nameAbbr ?? '').toUpperCase();
-      const p: Patient = {
-        id: uid(),
-        centerId,
-        screeningNo: `${centerId}${String(vals.screeningNoSeq).padStart(3, '0')}`,
-        randomNo: '',
-        nameAbbr,
-        enrollmentDate: vals.enrollmentDate as string,
-        status: 'screening',
-        consentDate: '',
-        demographics: {
-          gender: vals.gender, age: vals.age, household: '', weight, height,
-          bmi: calcBMI(weight, height), occupation: '',
-          environmentExposure: [], smokingHistory: { has: false }, drinkingHistory: { has: false },
-          dietHabit: [], livingEnvironment: [], climate: [],
-        },
-        allergyHistory: { has: false }, respiratoryHistory: { has: false },
-        familyHistory: { has: false }, priorTreatment: { has: false },
-        currentIllness: { diagnosisDate: '', attackCycle: '常年性', comorbidities: [], allergenTest: { done: false }, triggerFactors: { has: false } },
-        tcmFourExam: {
-          nasalMucosa: '淡白肿胀', nasalDischarge: '清稀如水', tongueBody: '淡红',
-          tongueCoating: '薄白', throat: '咽壁淡红、不肿', sneeze: '高频短促',
-          worseCondition: '遇冷', stool: '正常', urine: '清', pulse: '浮缓',
-        },
-        inclusionCriteria: [false, false, false, false, false, false],
-        exclusionCriteria: [false, false, false, false, false, false, false, false, false, false, false],
-        screeningResult: 'pass',
-        dispensedCount: 0, investigatorSignature: '', signatureDate: '',
-        visits: {
-          V1: emptyVisit('V1', vals.enrollmentDate), V2: emptyVisit('V2'), V3: emptyVisit('V3'),
-          V4: emptyVisit('V4'), V5: emptyVisit('V5'), V6: emptyVisit('V6'),
-        },
-        adverseEvents: [], concomitantMeds: [], nonDrugTherapies: [],
-      };
-      dispatch({ type: 'ADD_PATIENT', payload: p });
-      message.success('创建成功，请完善 V1 筛查期信息');
-      setModalOpen(false);
-      form.resetFields();
-      navigate(`/patient/${p.id}/v1`);
+      try {
+        // 1) 调后端建档（center 由后端根据当前用户自动设置，screening_no 需完整5位）
+        const bp = await apiCreatePatient({
+          screening_no: `${centerId}${String(vals.screeningNoSeq).padStart(3, '0')}`,
+          name_abbr: nameAbbr,
+          gender: vals.gender,
+          age: vals.age,
+          height,
+          weight,
+          enrollment_date: vals.enrollmentDate as string,
+        });
+        // 2) 后端已创建 + 自动生成 V1 空访视；转成前端富结构并入 store
+        const p: Patient = backendToPatient(bp);
+        // 沿用前端填的表单信息，覆盖 demographics（避免后端返回空年龄/身高体重时丢值）
+        const frontId = p.id;
+        p.demographics.age = vals.age;
+        p.demographics.height = height;
+        p.demographics.weight = weight;
+        dispatch({ type: 'ADD_PATIENT', payload: p });
+        message.success('创建成功，请完善 V1 筛查期信息');
+        setModalOpen(false);
+        form.resetFields();
+        navigate(`/patient/${frontId}/v1`);
+      } catch (e) {
+        message.error(apiErrorText(e));
+      }
     });
   };
 
@@ -168,6 +178,7 @@ export default function PatientList() {
         rowKey="id"
         columns={columns}
         dataSource={filtered}
+        loading={loading}
         pagination={{ pageSize: 10, showTotal: (t) => `共 ${t} 例` }}
       />
 

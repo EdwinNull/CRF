@@ -49,7 +49,7 @@ interface DraftInput {
   enrollmentDate: string; age?: number; gender?: '男' | '女';
 }
 
-function blankPatient(d: DraftInput): Patient {
+export function blankPatient(d: DraftInput): Patient {
   return {
     id: uid(), centerId: d.centerId, screeningNo: d.screeningNo, randomNo: d.randomNo,
     nameAbbr: d.nameAbbr, enrollmentDate: d.enrollmentDate, status: d.status,

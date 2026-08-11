@@ -1,0 +1,336 @@
+<title>CRF 系统前后端联调说明</title>
+
+<style>
+  :root {
+    --ink: #0b2b2e;
+    --ink-soft: #33585c;
+    --muted: #5b7376;
+    --paper: #f5f8f7;
+    --card: #ffffff;
+    --line: #dde6e3;
+    --accent: #2e8b88;
+    --accent-soft: #e2f0ee;
+    --good: #2f855a;
+    --good-soft: #e7f4ec;
+    --warn: #b7791f;
+    --warn-soft: #fdf4e3;
+    --bad: #c2433a;
+    --bad-soft: #fceaea;
+    --code-bg: #0f1c1d;
+    --code-ink: #d7e6e4;
+    --radius: 10px;
+    --shadow: 0 1px 2px rgba(11, 43, 46, 0.05), 0 8px 24px rgba(11, 43, 46, 0.06);
+    --serif: 'Lora', Georgia, 'Songti SC', serif;
+    --sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    --mono: ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ink: #e4efed;
+      --ink-soft: #b6c8c5;
+      --muted: #8aa09d;
+      --paper: #0f1717;
+      --card: #162223;
+      --line: #2a3b3b;
+      --accent: #6fc4c1;
+      --accent-soft: #1c3333;
+      --good: #6fc49a;
+      --good-soft: #1c3328;
+      --warn: #e0b356;
+      --warn-soft: #332a18;
+      --bad: #ef8f88;
+      --bad-soft: #38201f;
+      --code-bg: #0a1213;
+      --code-ink: #cfe0dd;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ink: #e4efed;
+    --ink-soft: #b6c8c5;
+    --muted: #8aa09d;
+    --paper: #0f1717;
+    --card: #162223;
+    --line: #2a3b3b;
+    --accent: #6fc4c1;
+    --accent-soft: #1c3333;
+    --good: #6fc49a;
+    --good-soft: #1c3328;
+    --warn: #e0b356;
+    --warn-soft: #332a18;
+    --bad: #ef8f88;
+    --bad-soft: #38201f;
+    --code-bg: #0a1213;
+    --code-ink: #cfe0dd;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.35);
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    line-height: 1.7;
+    font-size: 16px;
+  }
+  ::selection { background: var(--accent-soft); }
+
+  .wrap { max-width: 860px; margin: 0 auto; padding: 40px 24px 80px; }
+
+  /* header */
+  .eyebrow {
+    font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--accent); font-weight: 600;
+  }
+  h1 {
+    font-family: var(--serif);
+    font-size: clamp(26px, 4vw, 34px);
+    line-height: 1.25; margin: 10px 0 6px;
+    text-wrap: balance;
+  }
+  .lede { color: var(--muted); margin: 0 0 8px; font-size: 17px; max-width: 56ch; }
+  .meta {
+    color: var(--muted); font-size: 13px; font-family: var(--mono);
+    border-bottom: 1px solid var(--line); padding-bottom: 22px; margin-bottom: 34px;
+  }
+
+  /* section head */
+  h2 {
+    font-family: var(--serif);
+    font-size: 22px; margin: 44px 0 6px;
+    counter-increment: sec;
+    display: flex; align-items: baseline; gap: 12px;
+    text-wrap: balance;
+  }
+  h2::before {
+    content: "§" counter(sec);
+    font-family: var(--mono); font-size: 14px; color: var(--accent);
+    font-variant-numeric: tabular-nums;
+  }
+  .sub { color: var(--muted); margin: 0 0 18px; font-size: 15px; max-width: 60ch; }
+
+  p { margin: 12px 0; max-width: 66ch; }
+  a { color: var(--accent); text-decoration: none; border-bottom: 1px solid var(--line); }
+  a:hover { border-color: var(--accent); }
+  strong { color: var(--ink); }
+  code { font-family: var(--mono); font-size: 0.9em; background: var(--accent-soft); color: var(--ink); padding: 1px 6px; border-radius: 5px; }
+
+  /* cards */
+  .card {
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+    box-shadow: var(--shadow); padding: 20px 22px; margin-bottom: 16px;
+  }
+
+  /* tables */
+  .table-scroll { overflow-x: auto; margin: 0 0 18px; border: 1px solid var(--line); border-radius: var(--radius); }
+  table { border-collapse: collapse; width: 100%; font-size: 14.5px; min-width: 560px; }
+  th, td { padding: 11px 14px; text-align: left; border-bottom: 1px solid var(--line); }
+  th {
+    font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted);
+    font-weight: 600; background: var(--accent-soft); font-family: var(--mono);
+  }
+  tr:last-child td { border-bottom: none; }
+  td code { background: none; padding: 0; }
+  .mono, td .mono { font-family: var(--mono); }
+
+  /* chips / pills */
+  .pill {
+    display: inline-block; font-size: 12.5px; font-family: var(--mono);
+    padding: 2px 10px; border-radius: 999px; border: 1px solid var(--line);
+    background: var(--card); color: var(--ink); white-space: nowrap;
+  }
+  .pill.admin { color: var(--bad); border-color: var(--bad-soft); background: var(--bad-soft); }
+  .pill.doctor { color: var(--good); border-color: var(--good-soft); background: var(--good-soft); }
+  .chip {
+    display: inline-block; font-size: 12px; padding: 1px 9px; border-radius: 6px;
+    border: 1px solid var(--line); color: var(--muted); white-space: nowrap;
+  }
+  .chip.good { color: var(--good); border-color: var(--good-soft); background: var(--good-soft); }
+  .chip.warn { color: var(--warn); border-color: var(--warn-soft); background: var(--warn-soft); }
+  .chip.bad { color: var(--bad); border-color: var(--bad-soft); background: var(--bad-soft); }
+
+  /* code blocks */
+  pre {
+    background: var(--code-bg); color: var(--code-ink);
+    padding: 16px 18px; border-radius: var(--radius); overflow-x: auto;
+    font-family: var(--mono); font-size: 13.5px; line-height: 1.65; margin: 14px 0;
+  }
+  pre .cm { color: var(--muted); }
+  pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+  .tag { color: var(--accent); }
+
+  /* checklist */
+  ol.steps { counter-reset: step; list-style: none; padding: 0; margin: 12px 0; }
+  ol.steps li {
+    counter-increment: step; position: relative; padding: 8px 0 8px 44px;
+    border-bottom: 1px dashed var(--line);
+  }
+  ol.steps li:last-child { border-bottom: none; }
+  ol.steps li::before {
+    content: counter(step); position: absolute; left: 0; top: 9px;
+    width: 28px; height: 28px; border-radius: 50%; background: var(--accent-soft);
+    color: var(--accent); font-family: var(--mono); font-size: 13px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .expected { color: var(--muted); font-size: 14.5px; margin-left: 2px; }
+  .expected b { color: var(--good); font-weight: 600; }
+  .expected b.warn { color: var(--warn); }
+
+  /* local-boundary callouts */
+  .note {
+    border-left: 3px solid var(--accent); padding: 12px 16px; margin: 16px 0;
+    background: var(--accent-soft); border-radius: 0 var(--radius) var(--radius) 0;
+    font-size: 15px;
+  }
+
+  ul.tight { padding-left: 20px; margin: 8px 0; }
+  ul.tight li { margin: 6px 0; max-width: 64ch; }
+
+  .footer { margin-top: 56px; padding-top: 18px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
+</style>
+
+<body>
+  <div class="wrap">
+
+    <div class="eyebrow">荆防临床研究 CRF 系统 · 联调手册</div>
+    <h1>前后端联调说明</h1>
+    <p class="lede">面向开发与测试人员的手动验证指南。登录、患者建档、V1 筛选判定与数据导出已接入真实后端；访视富表单与不良事件仍在前端本地管理。</p>
+    <div class="meta">最后更新 2026-08-11 · 前端 :5173 · 后端 :8000 · PostgreSQL crf_db</div>
+
+    <h2 id="arch">系统架构</h2>
+    <div class="card">
+      <pre><span class="cm">浏览器</span>  http://localhost:5173
+    │  axios · baseURL=<span class="tag">/api/v1</span>
+    ▼
+Vite Dev Server <span class="tag">:5173</span> ── proxy /api ──▶ FastAPI <span class="tag">:8000</span>
+                                                  │
+                                     PostgreSQL <span class="tag">crf_db</span></pre>
+      <p style="margin:0">前端 <code>vite.config.ts</code> 将 <code>/api</code> 转发到后端，规避跨域；登录后用 JWT，401 自动跳转登录页。</p>
+    </div>
+
+    <h2 id="start">启动服务</h2>
+    <p class="sub">本机 conda 环境名 <code>crf</code>，命令用绝对路径或激活环境后直接调用。</p>
+    <pre><span class="cm"># 后端（首次需先迁移，已做过可跳过）</span>
+cd crf-backend
+/opt/anaconda3/envs/crf/bin/python -m alembic upgrade head
+/opt/anaconda3/envs/crf/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+<span class="cm"># 前端（另一终端）</span>
+cd crf-system
+npm run dev</pre>
+    <p>打开 <a href="http://localhost:5173">http://localhost:5173</a>。可用以下命令体检：</p>
+    <pre>curl http://localhost:8000/health        <span class="cm"># → {"status":"ok"}</span>
+curl -o /dev/null -w "%{http_code}" http://localhost:5173/   <span class="cm"># → 200</span></pre>
+
+    <h2 id="accounts">测试账号</h2>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>用户名</th><th>密码</th><th>角色</th><th>中心</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">admin</td><td class="mono">admin@crf2026</td><td><span class="pill admin">admin · 可跨中心导出</span></td><td>01</td></tr>
+          <tr><td class="mono">doctor01</td><td class="mono">Doctor@0101</td><td><span class="pill doctor">doctor</span></td><td>01 广安门呼吸</td></tr>
+          <tr><td class="mono">doctor02</td><td class="mono">Doctor@0202</td><td><span class="pill doctor">doctor</span></td><td>02 广安门耳鼻喉</td></tr>
+          <tr><td class="mono">doctor03</td><td class="mono">Doctor@0303</td><td><span class="pill doctor">doctor</span></td><td>03 西苑</td></tr>
+          <tr><td class="mono">doctor04</td><td class="mono">Doctor@0404</td><td><span class="pill doctor">doctor</span></td><td>04 东直门</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2 id="scope">已接入后端的功能</h2>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>功能</th><th>前端页面</th><th>后端接口</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td>登录</td><td>登录页</td><td class="mono">POST /auth/login</td><td>验证 用户名/密码/中心</td></tr>
+          <tr><td>患者列表</td><td>患者列表页</td><td class="mono">GET /patients</td><td>医生仅本中心，admin 全中心</td></tr>
+          <tr><td>新建患者</td><td>列表页「新建患者」</td><td class="mono">POST /patients</td><td>建档 + 自动建 V1，center 取当前用户</td></tr>
+          <tr><td>患者详情</td><td>患者详情页</td><td class="mono">GET /patients/{id}</td><td>病案基础字段</td></tr>
+          <tr><td>V1 筛选判定</td><td>V1 访视页「提交」</td><td class="mono">PATCH /visits/V1</td><td>提交后自动升为 treatment + 生成随机号</td></tr>
+          <tr><td>数据导出</td><td>导出页</td><td class="mono">GET /export</td><td>admin / 中心01 可导出 Excel</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2 id="local">仍为前端本地（分层边界）</h2>
+    <p class="sub">以下数据由前端 <code>PatientContext</code> + localStorage 管理，未落库到后端。</p>
+    <div class="note">
+      <strong>原因：</strong>后端将访视数据存为无结构的 JSON blob，与前端强类型富模型差异过大，强行落库会丢字段。界面显示与编辑均正常，仅刷新后不持久化到后端。
+    </div>
+    <ul class="tight">
+      <li>V1 详表 —— 人口学、病史、四诊、实验室等富字段</li>
+      <li>V2–V6 访视明细 —— VAS / 四分法 / RQLQ / 中医证候 / 药物评分等</li>
+      <li>不良事件、合并用药、非药物疗法、完成情况</li>
+    </ul>
+
+    <h2 id="verify">手动联调验证清单</h2>
+    <ol class="steps">
+      <li>用 <span class="pill doctor">doctor01</span> · <code>Doctor@0101</code> 登录（中心选 01）
+        <div class="expected">→ 登录成功，进入患者列表 <b class="warn"></b></div></li>
+      <li>输错密码再登录
+        <div class="expected">→ 提示 <b class="warn">用户名、密码或研究中心不正确</b></div></li>
+      <li>新建患者：筛选号 <code>001</code>、缩写 e.g. <code>AAAB</code>、入组日期
+        <div class="expected">→ 创建成功并跳转 V1；列表出现该患者（中心 01）<b class="warn"></b></div></li>
+      <li>切 <span class="pill doctor">doctor02</span> 登录看列表
+        <div class="expected">→ <b class="warn">看不到</b> 01001 号患者（中心隔离生效）</div></li>
+      <li>换 <span class="pill admin">admin</span> 进导出页，勾中心/状态/日期导出
+        <div class="expected">→ Excel 正常下载 <b class="warn"></b></div></li>
+      <li>用 <span class="pill doctor">doctor02</span> 进导出页
+        <div class="expected">→ 提示 <b class="warn">无导出权限</b>（仅 center01 / admin）</div></li>
+      <li>V1 页填写后提交（入选全「是」、排除全「否」）
+        <div class="expected">→ 状态从「筛选中」变 <b>治疗中</b>，随机号自动生成 <b class="warn"></b></div></li>
+    </ol>
+
+    <h2 id="curl">curl 直达后端</h2>
+    <p class="sub">绕过前端直接验证接口（同样地址，本机直连 :8000 或经代理 :5173 均可）。</p>
+    <pre>TOKEN=$(curl -s -X POST http://localhost:8000/api/v1/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"username":"admin","password":"admin@crf2026","center_id":"01"}' \
+  | python3 -c "import sys,json;print(json.load(sys.stdin)['access_token'])")
+
+<span class="cm"># 列患者</span>
+curl -s http://localhost:8000/api/v1/patients -H "Authorization: Bearer $TOKEN"
+
+<span class="cm"># 建患者</span>
+curl -s -X POST http://localhost:8000/api/v1/patients \
+  -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+  -d '{"screening_no":"01008","name_abbr":"BBBB","gender":"男","age":40,"height":170,"weight":65,"enrollment_date":"2026-08-11"}'
+
+<span class="cm"># 导出 Excel</span>
+curl -s -o export.xlsx "http://localhost:8000/api/v1/export?mode=full&centers=01" \
+  -H "Authorization: Bearer $TOKEN"</pre>
+
+    <h2 id="trouble">常见问题排查</h2>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>现象</th><th>排查</th></tr></thead>
+        <tbody>
+          <tr><td>登录提示「网络错误」</td><td>后端是否启动？<code>curl :8000/health</code>；代理是否生效？<code>curl :5173/api/v1/auth/me</code></td></tr>
+          <tr><td>「用户名/密码/中心不正确」</td><td>账号、密码、中心三者是否匹配（见测试账号）</td></tr>
+          <tr><td>401 后跳回登录页</td><td>token 失效，属正常；用正确账号重新登录</td></tr>
+          <tr><td>列表为空但库里有数据</td><td>医生只能看本中心；换对应中心账号登录</td></tr>
+          <tr><td>导出「无导出权限」</td><td>需 <code>admin</code> 或 <code>center_id=01</code> 账号</td></tr>
+          <tr><td>访视/不良事件刷新后消失</td><td>属分层边界，数据仍在前端 localStorage</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2 id="rollback">回退到纯 mock</h2>
+    <p class="sub">如需临时关闭后端接入：</p>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>开关</th><th>文件</th><th>操作</th></tr></thead>
+        <tbody>
+          <tr><td>患者列表走后端</td><td class="mono">PatientList/index.tsx</td><td>注释掉 <code>loadFromBackend()</code> 调用</td></tr>
+          <tr><td>登录走后端</td><td class="mono">Login/index.tsx</td><td>改为本地假登录（任意账号）</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="footer">文档随联调进度更新。错误码与字段映射见 <code>crf-system/src/api/</code> 与 <code>crf-backend/app/schemas/</code>。</div>
+
+  </div>
+</body>

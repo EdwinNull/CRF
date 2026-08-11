@@ -13,12 +13,12 @@
  *  9. 药物回收与发放 DrugRecoveryForm
  * 10. 疗效评估 EfficacyForm（baseline 取 V1 中医证候总分，current 实时监听 tcm.total）
  */
-import { useEffect } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { DatePicker, Form, Radio, Space, Typography, message } from 'antd';
 import dayjs, { type Dayjs } from 'dayjs';
 import { usePatient } from '../../utils/usePatient';
 import { usePatientStore } from '../../store/PatientContext';
-import { emptyVisit, zeroMed } from '../../mock/patients';
+import { emptyVisit, zeroMed, aeId } from '../../mock/patients';
 import type {
   VisitData,
   VitalSigns,
@@ -30,6 +30,7 @@ import type {
   DrugRecovery,
   EfficacyAssessment,
 } from '../../types/visit';
+import type { AdverseEvent } from '../../types/adverseEvent';
 import FormSection from '../../components/FormSection';
 import VitalSignsForm from '../../components/VitalSignsForm';
 import VASSlider from '../../components/VASSlider';
@@ -40,6 +41,7 @@ import MedScoreForm from '../../components/MedScoreForm';
 import DrugRecoveryForm from '../../components/DrugRecoveryForm';
 import EfficacyForm from '../../components/EfficacyForm';
 import VisitFormFooter from '../../components/VisitFormFooter';
+import AdverseEventModal from '../../components/AdverseEventModal';
 
 const { Title } = Typography;
 
@@ -106,6 +108,40 @@ export default function VisitV2() {
   // 疗效基线：V1 中医证候总分
   const baselineScore = patient?.visits['V1']?.tcmScores.total ?? 0;
 
+  /* ---------------- 不良事件弹窗触发 ---------------- */
+  // 用户勾选"上次访视后是否发生不良事件 = 是"时，自动弹出 AE 表单。
+  // - 保存后 dispatch ADD_ADVERSE_EVENT，写入"不良事件"页面
+  // - 取消则把 hasAdverseEvent 复位为 false，避免误记录
+  const [aeModalOpen, setAeModalOpen] = useState(false);
+  // 监听 hasAdverseEvent：仅 false→true 时打开（避免初次回填/取消时重弹）
+  const hasAE = Form.useWatch('hasAdverseEvent', form);
+  const prevHasAERef = useRef<boolean | undefined>(undefined);
+  useEffect(() => {
+    const prev = prevHasAERef.current;
+    prevHasAERef.current = hasAE;
+    if (locked) return; // 已提交的访视不再触发
+    if (prev === false && hasAE === true) {
+      setAeModalOpen(true);
+    }
+  }, [hasAE, locked]);
+
+  const handleAESave = (payload: AdverseEvent) => {
+    if (!patient) return;
+    const seqNo = patient.adverseEvents.length
+      ? Math.max(...patient.adverseEvents.map((x) => x.seqNo)) + 1
+      : 1;
+    const next: AdverseEvent = { ...payload, id: aeId(), seqNo };
+    dispatch({ type: 'ADD_ADVERSE_EVENT', payload: { patientId: patient.id, event: next } });
+    setAeModalOpen(false);
+    message.success(`已同步新增不良事件（编号 ${seqNo}）`);
+  };
+  const handleAECancel = () => {
+    setAeModalOpen(false);
+    // 用户取消则把 Radio 复位为"否"，避免误勾
+    form.setFieldValue('hasAdverseEvent', false);
+    prevHasAERef.current = false;
+  };
+
   // 初始化：把访视对象按命名空间回填进 Form，缺失给默认值
   useEffect(() => {
     if (!patient) return;
@@ -165,7 +201,8 @@ export default function VisitV2() {
   if (!patient) return null;
 
   return (
-    <Form form={form} layout="vertical" disabled={locked} requiredMark>
+    <>
+      <Form form={form} layout="vertical" disabled={locked} requiredMark>
       <Title level={4} style={{ marginTop: 0 }}>V2 治疗期（D7）</Title>
 
       {/* 1. 访视日期 */}
@@ -267,5 +304,13 @@ export default function VisitV2() {
 
       <VisitFormFooter onSave={handleSave} onSubmit={handleSubmit} />
     </Form>
+
+    <AdverseEventModal
+      open={aeModalOpen}
+      initial={null}
+      onSave={handleAESave}
+      onCancel={handleAECancel}
+    />
+    </>
   );
 }

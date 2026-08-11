@@ -7,11 +7,13 @@ import type { Patient, CenterId } from '../types/patient';
 import type { VisitData } from '../types/visit';
 import type { AdverseEvent } from '../types/adverseEvent';
 import type { ConcomitantMed, NonDrugTherapy, CompletionSummary } from '../types/concomitantMed';
-import { createPatients } from '../mock/patients';
+import { createSeedDataset } from '../mock/seedDataset';
 
 export interface CurrentUser {
   username: string;
   centerId: CenterId;
+  /** 后端角色：admin 可跨中心；doctor 仅本中心 */
+  role?: 'admin' | 'doctor';
 }
 
 export interface AppState {
@@ -22,6 +24,7 @@ export interface AppState {
 export type Action =
   | { type: 'LOGIN'; payload: CurrentUser }
   | { type: 'LOGOUT' }
+  | { type: 'LOAD_PATIENTS'; payload: Patient[] }
   | { type: 'ADD_PATIENT'; payload: Patient }
   | { type: 'UPDATE_PATIENT'; payload: { patientId: string; patch: Partial<Patient> } }
   | { type: 'UPDATE_VISIT'; payload: { patientId: string; visitNo: string; data: Partial<VisitData>; status?: VisitData['status'] } }
@@ -52,7 +55,7 @@ function init(): AppState {
   } catch {
     /* ignore corrupt storage */
   }
-  return { currentUser: null, patients: createPatients() };
+  return { currentUser: null, patients: createSeedDataset() };
 }
 
 function reducer(state: AppState, action: Action): AppState {
@@ -68,6 +71,9 @@ function reducer(state: AppState, action: Action): AppState {
       return { ...state, currentUser: action.payload };
     case 'LOGOUT':
       return { ...state, currentUser: null };
+    case 'LOAD_PATIENTS':
+      // 用后端数据替换患者的本地/mock 种子（保留 currentUser，避免登录态丢失）
+      return { ...state, patients: action.payload };
     case 'ADD_PATIENT':
       return { ...state, patients: [action.payload, ...state.patients] };
     case 'UPDATE_PATIENT':
