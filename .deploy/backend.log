@@ -1,0 +1,51 @@
+INFO:     Started server process [58865]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:54769 - "GET /health HTTP/1.1" 200 OK
+INFO:     203.10.99.28:0 - "GET / HTTP/1.1" 200 OK
+INFO:     203.10.99.28:0 - "GET /assets/index-vyn8jM-8.js HTTP/1.1" 200 OK
+INFO:     203.10.99.28:0 - "GET /assets/index-DiSEKMJw.css HTTP/1.1" 200 OK
+INFO:     203.10.99.28:0 - "GET /favicon.svg HTTP/1.1" 200 OK
+INFO:     203.10.99.28:0 - "POST /api/v1/auth/login HTTP/1.1" 200 OK
+INFO:     203.10.99.28:0 - "GET /api/v1/auth/me HTTP/1.1" 200 OK
+INFO:     203.10.99.28:0 - "GET /api/v1/patients HTTP/1.1" 200 OK
+INFO:     203.10.99.28:0 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     203.10.99.28:0 - "GET /login HTTP/1.1" 304 Not Modified
+INFO:     203.10.99.28:0 - "GET /assets/index-DiSEKMJw.css HTTP/1.1" 304 Not Modified
+INFO:     203.10.99.28:0 - "GET /assets/index-vyn8jM-8.js HTTP/1.1" 304 Not Modified
+INFO:     203.10.99.28:0 - "POST /api/v1/auth/login HTTP/1.1" 200 OK
+INFO:     203.10.99.28:0 - "GET /api/v1/auth/me HTTP/1.1" 401 Unauthorized
+INFO:     203.10.99.28:0 - "POST /api/v1/auth/login HTTP/1.1" 200 OK
+INFO:     203.10.99.28:0 - "GET /api/v1/auth/me HTTP/1.1" 200 OK
+INFO:     203.10.99.28:0 - "GET /api/v1/patients?center_id=01 HTTP/1.1" 200 OK
+INFO:     203.10.99.28:0 - "GET /api/v1/patients?center_id=01 HTTP/1.1" 200 OK
+INFO:     203.10.99.28:0 - "GET /api/v1/patients HTTP/1.1" 200 OK
+INFO:     203.10.99.28:0 - "GET /api/v1/patients HTTP/1.1" 200 OK
+INFO:     203.10.99.28:0 - "GET /api/v1/patients HTTP/1.1" 200 OK
+INFO:     203.10.99.28:0 - "GET / HTTP/1.1" 304 Not Modified
+INFO:     203.10.99.28:0 - "GET /assets/index-vyn8jM-8.js HTTP/1.1" 304 Not Modified
+INFO:     203.10.99.28:0 - "GET /assets/index-DiSEKMJw.css HTTP/1.1" 304 Not Modified
+INFO:     203.10.99.28:0 - "GET /api/v1/patients HTTP/1.1" 200 OK
+INFO:     2409:8a4c:8427:d4d0:5580:35b0:46c5:d117:0 - "GET / HTTP/1.1" 200 OK
+INFO:     2409:8a4c:8427:d4d0:5580:35b0:46c5:d117:0 - "GET /assets/index-DiSEKMJw.css HTTP/1.1" 200 OK
+INFO:     2409:8a4c:8427:d4d0:5580:35b0:46c5:d117:0 - "GET /assets/index-vyn8jM-8.js HTTP/1.1" 200 OK
+INFO:     2409:8a4c:8427:d4d0:5580:35b0:46c5:d117:0 - "GET /favicon.svg HTTP/1.1" 200 OK
+INFO:     240a:4280:1800:64e:b878:7eff:fe26:2131:0 - "GET / HTTP/1.1" 200 OK
+INFO:     240a:4280:1800:64e:b878:7eff:fe26:2131:0 - "GET /assets/index-vyn8jM-8.js HTTP/1.1" 200 OK
+INFO:     240a:4280:1800:64e:b878:7eff:fe26:2131:0 - "GET /assets/index-DiSEKMJw.css HTTP/1.1" 200 OK
+INFO:     240a:4280:1800:64e:b878:7eff:fe26:2131:0 - "GET /favicon.svg HTTP/1.1" 200 OK
+INFO:     240a:4280:1800:64e:b878:7eff:fe26:2131:0 - "POST /api/v1/auth/login HTTP/1.1" 401 Unauthorized
+INFO:     240a:4280:1800:64e:b878:7eff:fe26:2131:0 - "POST /api/v1/auth/login HTTP/1.1" 401 Unauthorized
+INFO:     240a:4280:1800:64e:b878:7eff:fe26:2131:0 - "POST /api/v1/auth/login HTTP/1.1" 200 OK
+INFO:     240a:4280:1800:64e:b878:7eff:fe26:2131:0 - "GET /api/v1/auth/me HTTP/1.1" 200 OK
+INFO:     240a:4280:1800:64e:b878:7eff:fe26:2131:0 - "GET /api/v1/patients?center_id=01 HTTP/1.1" 200 OK
+INFO:     240a:4280:1800:64e:b878:7eff:fe26:2131:0 - "GET /api/v1/patients?center_id=01 HTTP/1.1" 200 OK
+INFO:     240a:4280:1800:64e:b878:7eff:fe26:2131:0 - "GET /api/v1/patients?center_id=01 HTTP/1.1" 200 OK
+INFO:     123.114.40.131:0 - "GET /api/v1/patients?center_id=01 HTTP/1.1" 200 OK
+INFO:     123.114.40.131:0 - "GET /api/v1/patients?center_id=01 HTTP/1.1" 200 OK
+INFO:     123.114.40.131:0 - "GET /api/v1/patients?center_id=01 HTTP/1.1" 200 OK
+INFO:     123.114.40.131:0 - "GET /api/v1/patients?center_id=01 HTTP/1.1" 200 OK
+INFO:     203.10.99.28:0 - "GET / HTTP/1.1" 304 Not Modified
+INFO:     203.10.99.28:0 - "GET /assets/index-vyn8jM-8.js HTTP/1.1" 304 Not Modified
+INFO:     203.10.99.28:0 - "GET /assets/index-DiSEKMJw.css HTTP/1.1" 304 Not Modified
