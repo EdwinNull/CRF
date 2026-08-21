@@ -5,6 +5,7 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   server: {
+    allowedHosts: ['irritate-studio-broadside.ngrok-free.dev'],
     proxy: {
       // 前后端联调：/api/* 代理到 FastAPI 后端
       '/api': {

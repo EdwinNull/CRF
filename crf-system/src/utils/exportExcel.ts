@@ -95,6 +95,7 @@ function buildMainRows(list: Patient[]): Record<string, string>[] {
       入组日期: p.enrollmentDate,
       当前状态: p.status,
     };
+    flattenObj('V1_人口学', p.demographics, row);
     for (const no of ['V1', 'V2', 'V3', 'V4', 'V5', 'V6'] as const) {
       const v = p.visits[no];
       if (!v) continue;

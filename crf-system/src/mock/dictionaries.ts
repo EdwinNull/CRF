@@ -46,7 +46,7 @@ export const INCLUSION_CRITERIA = [
 /** 排除标准 11 项 (CRF p13) — 文字按处方规约展示，共 11 条 */
 export const EXCLUSION_CRITERIA = [
   '合并鼻息肉、鼻窦炎、鼻腔结构异常等其他鼻部疾病',
-  '排除急性感染、伴有发热者',
+  '急性感染、伴有发热者',
   '妊娠期、哺乳期或准备妊娠妇女',
   '严重心、肝、肾功能不全者',
   '患有恶性肿瘤或血液系统疾病者',
@@ -143,7 +143,7 @@ export const TCM_MAIN_SYMPTOMS: { key: string; label: string; options: { value: 
   },
   {
     key: 'sneeze',
-    label: '喷嚏',
+    label: '阵发性/连续喷嚏',
     options: [
       { value: 0, desc: '无' },
       { value: 2, desc: '每日 3-5 次' },
@@ -153,7 +153,7 @@ export const TCM_MAIN_SYMPTOMS: { key: string; label: string; options: { value: 
   },
   {
     key: 'rhinorrhea',
-    label: '流涕',
+    label: '流清涕',
     options: [
       { value: 0, desc: '无' },
       { value: 2, desc: '少量，鼻前孔可见' },
@@ -166,7 +166,7 @@ export const TCM_MAIN_SYMPTOMS: { key: string; label: string; options: { value: 
     label: '鼻塞',
     options: [
       { value: 0, desc: '无' },
-      { value: 2, desc: '吸气时有感' },
+      { value: 2, desc: '吸气时有感，伴张口呼吸' },
       { value: 4, desc: '间歇性或交替性' },
       { value: 6, desc: '几乎全天张口呼吸' },
     ],
@@ -177,32 +177,32 @@ export const TCM_MAIN_SYMPTOMS: { key: string; label: string; options: { value: 
 export const TCM_SUB_SYMPTOMS: { key: string; label: string; options: { value: number; desc: string }[] }[] = [
   {
     key: 'windColdAversion',
-    label: '恶风畏寒',
+    label: '怕风怕冷',
     options: [
       { value: 0, desc: '无' },
-      { value: 1, desc: '轻微' },
-      { value: 2, desc: '明显' },
-      { value: 3, desc: '严重' },
+      { value: 1, desc: '轻度怕风冷' },
+      { value: 2, desc: '怕风冷欲披衣被' },
+      { value: 3, desc: '怕风冷披衣被而不能解' },
     ],
   },
   {
     key: 'bodyAche',
-    label: '肢体酸楚',
+    label: '周身酸痛',
     options: [
       { value: 0, desc: '无' },
-      { value: 1, desc: '轻微' },
-      { value: 2, desc: '明显' },
-      { value: 3, desc: '严重' },
+      { value: 1, desc: '偶发局部酸痛，可自行缓解' },
+      { value: 2, desc: '多处酸痛，活动后稍加重，轻度影响活动' },
+      { value: 3, desc: '全身酸痛剧烈，活动受限，影响日常行动' },
     ],
   },
   {
     key: 'sweating',
-    label: '自汗',
+    label: '汗出',
     options: [
       { value: 0, desc: '无' },
-      { value: 1, desc: '轻微' },
-      { value: 2, desc: '明显' },
-      { value: 3, desc: '严重' },
+      { value: 1, desc: '轻微少汗，仅活动后少量汗出' },
+      { value: 2, desc: '明显少汗，活动后汗出极少，皮肤干燥' },
+      { value: 3, desc: '完全无汗，剧烈活动也无汗，周身发紧' },
     ],
   },
   {
@@ -210,19 +210,19 @@ export const TCM_SUB_SYMPTOMS: { key: string; label: string; options: { value: n
     label: '咳嗽',
     options: [
       { value: 0, desc: '无' },
-      { value: 1, desc: '轻微' },
-      { value: 2, desc: '明显' },
-      { value: 3, desc: '严重' },
+      { value: 1, desc: '偶发咳嗽，每日≤3声' },
+      { value: 2, desc: '间断咳嗽，每日4-10声，轻微影响日常' },
+      { value: 3, desc: '频繁咳嗽，每日≥11声，影响睡眠日常' },
     ],
   },
   {
     key: 'paleFace',
-    label: '面色晄白',
+    label: '面色淡白',
     options: [
       { value: 0, desc: '无' },
-      { value: 1, desc: '轻微' },
-      { value: 2, desc: '明显' },
-      { value: 3, desc: '严重' },
+      { value: 1, desc: '面色稍淡，无苍白感' },
+      { value: 2, desc: '面色明显淡白，略带苍白' },
+      { value: 3, desc: '面色苍白无华，精神萎靡' },
     ],
   },
 ];
@@ -231,11 +231,11 @@ export const TCM_SUB_SYMPTOMS: { key: string; label: string; options: { value: n
 export const RQLQ_QUESTIONS: { key: string; label: string; questions: string[] }[] = [
   { key: 'activityLimit', label: '活动受限（Q1-Q3）', questions: ['日常生活活动受影响', '工作/学习受影响', '社会活动受影响'] },
   { key: 'sleep', label: '睡眠（Q4-Q6）', questions: ['入睡困难', '夜间憋醒', '睡眠质量下降'] },
-  { key: 'nonNasalEye', label: '非鼻/眼症状（Q7-Q13）', questions: ['精力下降', '口渴', '工作效率下降', '疲惫', '乏力', '注意力不集中', '头痛'] },
-  { key: 'practicalProblems', label: '实际问题（Q14-Q16）', questions: ['需要擤鼻涕', '需要揉鼻/眼', '需携带纸巾'] },
-  { key: 'nasalSymptoms', label: '鼻部症状（Q17-Q20）', questions: ['鼻痒', '打喷嚏', '流清涕', '鼻塞'] },
+  { key: 'nonNasalEye', label: '非鼻/眼症状（Q7-Q13）', questions: ['精力下降', '工作效率下降', '疲惫', '口渴', '乏力', '注意力不集中', '头痛'] },
+  { key: 'practicalProblems', label: '实际问题（Q14-Q16）', questions: ['需要擤鼻涕', '需要揉擦鼻/眼', '需携带纸巾'] },
+  { key: 'nasalSymptoms', label: '鼻部症状（Q17-Q20）', questions: ['鼻塞', '流清涕', '打喷嚏', '鼻痒'] },
   { key: 'eyeSymptoms', label: '眼部症状（Q21-Q24）', questions: ['眼痒', '流泪', '眼干', '眼肿'] },
-  { key: 'emotion', label: '情绪（Q25-Q28）', questions: ['容易激惹', '烦躁', '情绪低落', '因症状而烦恼'] },
+  { key: 'emotion', label: '情绪（Q25-Q27）', questions: ['容易尴尬', '沮丧', '不耐烦/爱发脾气'] },
 ];
 
 /** 不良事件各字段映射（plan.md §5.10） */
@@ -267,16 +267,16 @@ export const AE_RELATION = [
 export const AE_OUTCOME = [
   { value: 1, label: '无变化' },
   { value: 2, label: '病情恶化' },
-  { value: 3, label: '恢复治愈' },
-  { value: 4, label: '改善中' },
-  { value: 5, label: '留有后遗症' },
+  { value: 3, label: '恢复/治愈' },
+  { value: 4, label: '改善中/恢复中' },
+  { value: 5, label: '恢复留有后遗症' },
   { value: 6, label: '死亡' },
 ];
 export const SAE_TYPE = [
   { value: 1, label: '导致死亡' },
   { value: 2, label: '危及生命' },
   { value: 3, label: '导致住院或住院时间延长' },
-  { value: 4, label: '导致残疾/功能丧失' },
+  { value: 4, label: '导致永久或显著的残疾/功能丧失' },
   { value: 5, label: '先天性畸形/出生缺陷' },
   { value: 6, label: '需要干预以防永久性损害' },
   { value: 7, label: '其他重要医学事件' },
@@ -284,14 +284,14 @@ export const SAE_TYPE = [
 
 /** 完成情况：退出原因 9 项（CRF p41） */
 export const WITHDRAWAL_REASONS = [
-  { value: 1, label: '受试者主动退出' },
-  { value: 2, label: '研究者因安全性终止' },
-  { value: 3, label: '依从性差' },
-  { value: 4, label: '失访' },
-  { value: 5, label: '不良事件' },
-  { value: 6, label: '妊娠' },
-  { value: 7, label: '发生死亡' },
-  { value: 8, label: '研究者认为不适合继续' },
+  { value: 1, label: '发生不良事件（包括胃肠道不良反应）、有临床意义的实验室指标变化或异常' },
+  { value: 2, label: '使用禁忌的伴随用药' },
+  { value: 3, label: '患者出现怀孕或打算怀孕' },
+  { value: 4, label: '患者撤回知情同意' },
+  { value: 5, label: '患者依从性差' },
+  { value: 6, label: '患者试验期间参加其他临床试验' },
+  { value: 7, label: '患者失访' },
+  { value: 8, label: '患者死亡' },
   { value: 9, label: '其他' },
 ];
 

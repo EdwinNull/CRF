@@ -23,7 +23,7 @@ export function medId(): string {
 
 const zeroVAS = (): VASScores => ({ sneeze: 0, rhinorrhea: 0, nasalItch: 0, nasalCongestion: 0, eyeItch: 0, lacrimation: 0, total: 0 });
 const zeroFour = (): SymptomFourScale => ({ sneeze: 0, rhinorrhea: 0, nasalItch: 0, nasalCongestion: 0, eyeItch: 0, lacrimation: 0, nasalTotal: 0, totalScore: 0 });
-const zeroRQLQ = (): RQLQScores => ({ activityLimit: [0, 0, 0], sleep: [0, 0, 0], nonNasalEye: [0, 0, 0, 0, 0, 0, 0], practicalProblems: [0, 0, 0], nasalSymptoms: [0, 0, 0, 0], eyeSymptoms: [0, 0, 0, 0], emotion: [0, 0, 0, 0], total: 0 });
+const zeroRQLQ = (): RQLQScores => ({ activityLimit: [0, 0, 0], sleep: [0, 0, 0], nonNasalEye: [0, 0, 0, 0, 0, 0, 0], practicalProblems: [0, 0, 0], nasalSymptoms: [0, 0, 0, 0], eyeSymptoms: [0, 0, 0, 0], emotion: [0, 0, 0], total: 0 });
 const zeroTCM = (): TCMScores => ({ nasalItch: 0, sneeze: 0, rhinorrhea: 0, nasalCongestion: 0, windColdAversion: 0, bodyAche: 0, sweating: 0, cough: 0, paleFace: 0, tongueDesc: '', pulseDesc: '', total: 0 });
 export const zeroMed = (): MedScore => ({
   oralAntihistamine: { selected: false, days: 0, total: 0 },

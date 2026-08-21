@@ -19,7 +19,7 @@ const DRUG_TYPES: {
 }[] = [
   { key: 'oralAntihistamine', label: '口服抗组胺药', points: 1 },
   { key: 'nasalAntihistamine', label: '鼻用抗组胺药', points: 1 },
-  { key: 'eyeAntihistamine', label: '滴眼抗组胺药', points: 1 },
+  { key: 'eyeAntihistamine', label: '眼用抗组胺药', points: 1 },
   { key: 'nasalSteroid', label: '鼻用糖皮质激素', points: 2 },
   { key: 'oralCorticosteroid', label: '口服糖皮质激素', points: 3 },
 ];
@@ -110,11 +110,9 @@ export default function MedScoreForm({ value, onChange, disabled }: MedScoreForm
           onChange={(e) => updateGroup(key, { selected: e.target.checked })}
         >
           {label}
-          <Text type="secondary" style={{ fontWeight: 400 }}>
-            （每日{points}分）
-          </Text>
         </Checkbox>
       ),
+      dailyScore: points,
       days: (
         <InputNumber
           min={0}
@@ -136,9 +134,10 @@ export default function MedScoreForm({ value, onChange, disabled }: MedScoreForm
         size="small"
         pagination={false}
         columns={[
-          { title: '药物类别', dataIndex: 'name' },
-          { title: '用药天数（天）', dataIndex: 'days', width: 200 },
-          { title: '本类得分', dataIndex: 'total', width: 120 },
+          { title: '用药类型', dataIndex: 'name' },
+          { title: '每日计分', dataIndex: 'dailyScore', width: 100 },
+          { title: '用药天数（天）', dataIndex: 'days', width: 150 },
+          { title: '总分', dataIndex: 'total', width: 100 },
         ]}
         dataSource={rows}
         locale={{ emptyText: '暂无药物评分记录' }}

@@ -61,7 +61,7 @@ const zeroScores = () => ({
   four: { sneeze: 0, rhinorrhea: 0, nasalItch: 0, nasalCongestion: 0, eyeItch: 0, lacrimation: 0, nasalTotal: 0, totalScore: 0 },
   rqlq: {
     activityLimit: [0, 0, 0], sleep: [0, 0, 0], nonNasalEye: [0, 0, 0, 0, 0, 0, 0],
-    practicalProblems: [0, 0, 0], nasalSymptoms: [0, 0, 0, 0], eyeSymptoms: [0, 0, 0, 0], emotion: [0, 0, 0, 0], total: 0,
+    practicalProblems: [0, 0, 0], nasalSymptoms: [0, 0, 0, 0], eyeSymptoms: [0, 0, 0, 0], emotion: [0, 0, 0], total: 0,
   },
   tcm: {
     nasalItch: 0, sneeze: 0, rhinorrhea: 0, nasalCongestion: 0,
@@ -82,7 +82,7 @@ function fillV1Scores(p: Patient, enroll: string, level: 'full' | 'standard' | '
   v1.rqlqScores = {
     ...s.rqlq,
     activityLimit: [4, 4, 3], sleep: [3, 4, 3], nonNasalEye: [3, 2, 3, 3, 2, 3, 1],
-    practicalProblems: [5, 5, 4], nasalSymptoms: [5, 4, 4, 5], eyeSymptoms: [4, 3, 2, 2], emotion: [3, 3, 2, 3],
+    practicalProblems: [5, 5, 4], nasalSymptoms: [5, 4, 4, 5], eyeSymptoms: [4, 3, 2, 2], emotion: [3, 3, 2],
   };
   v1.tcmScores = {
     ...s.tcm,

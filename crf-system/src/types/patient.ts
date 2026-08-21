@@ -37,7 +37,9 @@ export interface Demographics {
   smokingHistory: SmokingHistory;
   drinkingHistory: DrinkingHistory;
   dietHabit: string[]; // ['辛辣','生冷','清淡','其他']
+  dietHabitOther?: string; // 勾选「其他」时注明
   livingEnvironment: string[]; // ['通风良好','霉斑','尘螨','其他']
+  livingEnvironmentOther?: string; // 勾选「其他」时注明
   climate: string[]; // ['潮湿','干燥','寒冷','温热']
 }
 

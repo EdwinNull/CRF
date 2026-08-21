@@ -18,16 +18,18 @@
  *
  * submitted -> 全表单只读（Form disabled + 控件显式 disabled）。
  */
-import { useMemo, useState, useEffect, useRef } from 'react';
-import { DatePicker, Form, Radio, Space, Tag, Typography, message } from 'antd';
+import { useState, useEffect } from 'react';
+import { DatePicker, Form, Radio, Space, Typography, Button, message } from 'antd';
 import dayjs, { type Dayjs } from 'dayjs';
 import { useParams } from 'react-router-dom';
 import { usePatientStore } from '../../store/PatientContext';
-import { aeId } from '../../mock/patients';
+import { aeId, medId } from '../../mock/patients';
 import type { LabModule } from '../../components/componentTypes';
 import type { VisitData } from '../../types/visit';
 import type { AdverseEvent } from '../../types/adverseEvent';
+import type { ConcomitantMed } from '../../types/concomitantMed';
 import FormSection from '../../components/FormSection';
+import ConcomitantMedModal from '../../components/ConcomitantMedModal';
 import VitalSignsForm from '../../components/VitalSignsForm';
 import SymptomScoreCard from '../../components/SymptomScoreCard';
 import VASSlider from '../../components/VASSlider';
@@ -40,7 +42,7 @@ import LabResultsForm from '../../components/LabResultsForm';
 import VisitFormFooter from '../../components/VisitFormFooter';
 import AdverseEventModal from '../../components/AdverseEventModal';
 
-const { Text } = Typography;
+const { Title } = Typography;
 
 /** V4 实验室子模块：V3 三项 + 新增 FeNO / 血清IgE / 心电图 */
 const LAB_MODULES: LabModule[] = ['blood', 'urine', 'biochem', 'feno', 'ecg', 'ige'];
@@ -89,19 +91,11 @@ export default function VisitV4() {
   const watchedTcm = Form.useWatch('tcmScores', form);
   const currentScore = watchedTcm?.total ?? visit?.tcmScores?.total ?? 0;
 
-  /* ---------------- 不良事件弹窗触发 ---------------- */
-  // 上次访视后情况 hasAdverseEvent 选"是" → 弹 AE 表单 → 保存后同步到不良事件列表
+  /* ---------------- 不良事件 / 合并用药弹窗 ---------------- */
+  // 由“是”按钮自身的点击事件直接触发，避免依赖 Form.useWatch 的前后值判断在
+  // 首次回填、切换患者时漏掉弹窗。
   const [aeModalOpen, setAeModalOpen] = useState(false);
-  const hasAE = Form.useWatch('hasAdverseEvent', form);
-  const prevHasAERef = useRef<boolean | undefined>(undefined);
-  useEffect(() => {
-    const prev = prevHasAERef.current;
-    prevHasAERef.current = hasAE;
-    if (disabled) return;
-    if (prev === false && hasAE === true) {
-      setAeModalOpen(true);
-    }
-  }, [hasAE, disabled]);
+  const [cmModalOpen, setCmModalOpen] = useState(false);
 
   const handleAESave = (payload: AdverseEvent) => {
     if (!patient) return;
@@ -110,40 +104,82 @@ export default function VisitV4() {
       : 1;
     const next: AdverseEvent = { ...payload, id: aeId(), seqNo };
     dispatch({ type: 'ADD_ADVERSE_EVENT', payload: { patientId: patient.id, event: next } });
+    // 完成弹窗填表即把 V4 的“发生不良事件”状态一并保存为草稿，
+    // 即使用户暂时离开 V4，也不会丢失这次登记的上下文。
+    dispatch({
+      type: 'UPDATE_VISIT',
+      payload: { patientId: patient.id, visitNo: 'V4', data: { hasAdverseEvent: true }, status: 'draft' },
+    });
+    form.setFieldValue('hasAdverseEvent', true);
     setAeModalOpen(false);
     message.success(`已同步新增不良事件（编号 ${seqNo}）`);
   };
   const handleAECancel = () => {
     setAeModalOpen(false);
-    form.setFieldValue('hasAdverseEvent', false);
-    prevHasAERef.current = false;
+    // 取消时保持"是"状态（因为可能有多条不良事件要记录）
   };
 
-  /** 首次挂载时用 store 数据回填表单 initialValues */
-  const initial = useMemo<V4FormValues>(() => {
-    return {
-      visitDate: visit?.visitDate ? dayjs(visit.visitDate) : undefined,
-      vitalSigns: visit?.vitalSigns,
-      symptomFourScale: visit?.symptomFourScale,
-      vasScores: visit?.vasScores,
-      rqlqScores: visit?.rqlqScores,
-      tcmScores: visit?.tcmScores,
-      medScore: visit?.medScore,
-      drugRecovery: visit?.drugRecovery,
-      efficacy: visit?.efficacy,
-      hasAdverseEvent: visit?.hasAdverseEvent,
-      hasNewConcomitantMed: visit?.hasNewConcomitantMed,
+  const openAEForm = () => {
+    if (!disabled) {
+      form.setFieldValue('hasAdverseEvent', true);
+      setAeModalOpen(true);
+    }
+  };
+
+  const handleCMSave = (payload: ConcomitantMed) => {
+    if (!patient) return;
+    const seqNo = patient.concomitantMeds.length
+      ? Math.max(...patient.concomitantMeds.map((x) => x.seqNo)) + 1
+      : 1;
+    const next: ConcomitantMed = { ...payload, id: medId(), seqNo };
+    dispatch({ type: 'ADD_CONCOMITANT_MED', payload: { patientId: patient.id, med: next } });
+    dispatch({
+      type: 'UPDATE_VISIT',
+      payload: { patientId: patient.id, visitNo: 'V4', data: { hasNewConcomitantMed: true }, status: 'draft' },
+    });
+    form.setFieldValue('hasNewConcomitantMed', true);
+    setCmModalOpen(false);
+    message.success(`已同步新增合并用药（编号 ${seqNo}）`);
+  };
+  const handleCMCancel = () => {
+    setCmModalOpen(false);
+    // 取消时保持"是"状态（因为可能有多条合并用药要记录）
+  };
+
+  const openCMForm = () => {
+    if (!disabled) {
+      form.setFieldValue('hasNewConcomitantMed', true);
+      setCmModalOpen(true);
+    }
+  };
+
+  /** 初始化：把访视对象按命名空间回填进 Form */
+  useEffect(() => {
+    if (!patient || !visit) return;
+    form.setFieldsValue({
+      visitDate: visit.visitDate ? dayjs(visit.visitDate) : undefined,
+      vitalSigns: visit.vitalSigns,
+      symptomFourScale: visit.symptomFourScale,
+      vasScores: visit.vasScores,
+      rqlqScores: visit.rqlqScores,
+      tcmScores: visit.tcmScores,
+      medScore: visit.medScore,
+      drugRecovery: visit.drugRecovery,
+      efficacy: visit.efficacy,
+      hasAdverseEvent: visit.hasAdverseEvent ?? false,
+      hasNewConcomitantMed: visit.hasNewConcomitantMed ?? false,
       labResults: {
-        labBlood: visit?.labBlood,
-        labUrine: visit?.labUrine,
-        labBiochem: visit?.labBiochem,
-        feno: visit?.feno,
-        ecg: visit?.ecg,
-        serumIgE: visit?.serumIgE,
+        labBlood: visit.labBlood,
+        labUrine: visit.labUrine,
+        labBiochem: visit.labBiochem,
+        feno: visit.feno,
+        ecg: visit.ecg,
+        serumIgE: visit.serumIgE,
       },
-    };
+    });
+    // 仅在切换患者时回填，避免保存弹窗记录时覆盖 V4 中尚未暂存的其他输入。
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visit]);
+  }, [patient?.id]);
 
   if (!patient || !visit) {
     return null;
@@ -188,7 +224,7 @@ export default function VisitV4() {
         payload: { patientId: patient.id, visitNo: 'V4', data: collect(values as V4FormValues), status: 'submitted' },
       });
       message.success('V4 访视已提交并锁定');
-    } catch (err) {
+    } catch {
       message.warning('存在未填写或填写不符合要求的内容，请检查后重试');
     } finally {
       setSubmitting(false);
@@ -196,128 +232,113 @@ export default function VisitV4() {
   };
 
   return (
-    <div>
-      <Space style={{ marginBottom: 12 }} wrap>
-        <Typography.Title level={4} style={{ margin: 0 }}>
-          V4 治疗期 D28 访视
-        </Typography.Title>
-        {visit.status === 'submitted' ? (
-          <Tag color="green">已提交（只读）</Tag>
-        ) : (
-          <Tag color="orange">草稿</Tag>
-        )}
-      </Space>
+    <>
+      <Form form={form} layout="vertical" disabled={disabled} requiredMark>
+        <Title level={4} style={{ marginTop: 0 }}>V4 治疗期（D28）</Title>
 
-      <Form form={form} layout="vertical" initialValues={initial} disabled={disabled}>
         {/* 访视日期 */}
-        <FormSection title="访视日期" required defaultActive status={visit.visitDate ? 'complete' : 'empty'}>
+        <FormSection title="访视日期" required defaultActive>
           <Form.Item
             name="visitDate"
             rules={[{ required: true, message: '请选择访视日期' }]}
-            style={{ maxWidth: 320 }}
+            style={{ maxWidth: 320, marginBottom: 0 }}
           >
             <DatePicker
-              allowClear={false}
-              format="YYYY-MM-DD"
               style={{ width: '100%' }}
-              disabled={disabled}
+              format="YYYY-MM-DD"
+              placeholder="请选择访视日期"
             />
           </Form.Item>
-          <Text type="secondary">本次为治疗第 28 天访视。</Text>
         </FormSection>
 
         {/* 生命体征 */}
-        <FormSection title="生命体征" status={visit.vitalSigns ? 'partial' : 'empty'}>
-          <Form.Item name="vitalSigns" noStyle>
+        <FormSection title="生命体征" defaultActive>
+          <Form.Item name="vitalSigns" style={{ marginBottom: 0 }}>
             <VitalSignsForm disabled={disabled} />
           </Form.Item>
         </FormSection>
 
         {/* 上次访视后情况 */}
-        <FormSection title="上次访视后情况">
-          <Space direction="vertical" style={{ width: '100%' }} size={16}>
-            <Form.Item
-              name="hasAdverseEvent"
-              label="上次访视后是否发生不良事件"
-              style={{ marginBottom: 0 }}
-            >
-              <Radio.Group
-                disabled={disabled}
-                options={[
-                  { label: '否', value: false },
-                  { label: '是（请至「不良事件」页登记）', value: true },
-                ]}
-              />
+        <FormSection title="上次访视后情况" defaultActive>
+          <Space size={24} wrap>
+            <Form.Item name="hasAdverseEvent" label="是否发生不良事件" style={{ marginBottom: 0 }}>
+              <Radio.Group disabled={disabled} optionType="button" buttonStyle="solid">
+                <Radio.Button value={true} onClick={openAEForm}>是</Radio.Button>
+                <Radio.Button value={false}>否</Radio.Button>
+              </Radio.Group>
             </Form.Item>
-            <Form.Item
-              name="hasNewConcomitantMed"
-              label="上次访视后是否新合并用药"
-              style={{ marginBottom: 0 }}
-            >
-              <Radio.Group
-                disabled={disabled}
-                options={[
-                  { label: '否', value: false },
-                  { label: '是（请至「合并用药」页登记）', value: true },
-                ]}
-              />
+            {!disabled && (
+              <Button type="link" onClick={openAEForm} style={{ padding: 0 }}>
+                + 新增不良事件
+              </Button>
+            )}
+            <Form.Item name="hasNewConcomitantMed" label="是否合并用药变化" style={{ marginBottom: 0 }}>
+              <Radio.Group disabled={disabled} optionType="button" buttonStyle="solid">
+                <Radio.Button value={true} onClick={openCMForm}>是</Radio.Button>
+                <Radio.Button value={false}>否</Radio.Button>
+              </Radio.Group>
             </Form.Item>
+            {!disabled && (
+              <Button type="link" onClick={openCMForm} style={{ padding: 0 }}>
+                + 新增合并用药
+              </Button>
+            )}
           </Space>
         </FormSection>
 
-        {/* 药物评分 */}
-        <FormSection title="药物评分">
-          <Form.Item name="medScore" noStyle>
-            <MedScoreForm disabled={disabled} />
-          </Form.Item>
-        </FormSection>
-
-        {/* 药物回收 */}
-        <FormSection title="药物回收">
-          <Form.Item name="drugRecovery" noStyle>
-            <DrugRecoveryForm disabled={disabled} />
-          </Form.Item>
-        </FormSection>
-
-        {/* 疗效评估 */}
-        <FormSection title="疗效评估" status={currentScore > 0 ? 'partial' : 'empty'}>
-          <Form.Item name="efficacy" noStyle>
-            <EfficacyForm baselineScore={baselineScore} currentScore={currentScore} disabled={disabled} />
-          </Form.Item>
-        </FormSection>
-
-        {/* 实验室检查：血常规 + 尿常规 + 血生化 + FeNO + 心电图 + 血清总IgE */}
-        <FormSection title="实验室检查" defaultActive>
-          <Form.Item name="labResults" noStyle>
-            <LabResultsForm modules={LAB_MODULES} disabled={disabled} />
-          </Form.Item>
-        </FormSection>
-
-        {/* 四分法症状评分 */}
-        <FormSection title="四分法鼻眼症状评分">
-          <Form.Item name="symptomFourScale" noStyle>
-            <SymptomScoreCard disabled={disabled} />
-          </Form.Item>
-        </FormSection>
-
         {/* VAS 评分 */}
-        <FormSection title="VAS 视觉模拟评分">
-          <Form.Item name="vasScores" noStyle>
+        <FormSection title="VAS 评分" defaultActive>
+          <Form.Item name="vasScores" style={{ marginBottom: 0 }}>
             <VASSlider disabled={disabled} />
           </Form.Item>
         </FormSection>
 
+        {/* 四分法症状评分 */}
+        <FormSection title="四分法症状评分" defaultActive>
+          <Form.Item name="symptomFourScale" style={{ marginBottom: 0 }}>
+            <SymptomScoreCard disabled={disabled} />
+          </Form.Item>
+        </FormSection>
+
         {/* RQLQ 问卷 */}
-        <FormSection title="RQLQ 鼻炎生活质量问卷">
-          <Form.Item name="rqlqScores" noStyle>
+        <FormSection title="RQLQ 问卷" defaultActive>
+          <Form.Item name="rqlqScores" style={{ marginBottom: 0 }}>
             <RQLQForm disabled={disabled} />
           </Form.Item>
         </FormSection>
 
         {/* 中医证候评分 */}
-        <FormSection title="中医证候评分">
-          <Form.Item name="tcmScores" noStyle>
+        <FormSection title="中医证候评分" defaultActive>
+          <Form.Item name="tcmScores" style={{ marginBottom: 0 }}>
             <TCMScoreForm disabled={disabled} />
+          </Form.Item>
+        </FormSection>
+
+        {/* 药物评分 */}
+        <FormSection title="药物评分" defaultActive>
+          <Form.Item name="medScore" style={{ marginBottom: 0 }}>
+            <MedScoreForm disabled={disabled} />
+          </Form.Item>
+        </FormSection>
+
+        {/* 实验室检查：V3 三项 + FeNO / 心电图 / 血清总 IgE */}
+        <FormSection title="实验室检查" defaultActive>
+          <Form.Item name="labResults" style={{ marginBottom: 0 }}>
+            <LabResultsForm modules={LAB_MODULES} disabled={disabled} />
+          </Form.Item>
+        </FormSection>
+
+        {/* 药物回收与发放 */}
+        <FormSection title="药物回收与发放" defaultActive>
+          <Form.Item name="drugRecovery" style={{ marginBottom: 0 }}>
+            <DrugRecoveryForm disabled={disabled} />
+          </Form.Item>
+        </FormSection>
+
+        {/* 疗效评估 */}
+        <FormSection title="疗效评估" required defaultActive>
+          <Form.Item name="efficacy" style={{ marginBottom: 0 }}>
+            <EfficacyForm baselineScore={baselineScore} currentScore={currentScore} disabled={disabled} />
           </Form.Item>
         </FormSection>
       </Form>
@@ -332,6 +353,12 @@ export default function VisitV4() {
         onSave={handleAESave}
         onCancel={handleAECancel}
       />
-    </div>
+      <ConcomitantMedModal
+        open={cmModalOpen}
+        initial={null}
+        onSave={handleCMSave}
+        onCancel={handleCMCancel}
+      />
+    </>
   );
 }

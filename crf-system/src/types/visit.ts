@@ -41,8 +41,8 @@ export interface RQLQScores {
   practicalProblems: [number, number, number];
   nasalSymptoms: [number, number, number, number];
   eyeSymptoms: [number, number, number, number];
-  emotion: [number, number, number, number];
-  total: number; // 28项求和
+  emotion: [number, number, number];
+  total: number; // 27项求和
 }
 
 export interface TCMScores {

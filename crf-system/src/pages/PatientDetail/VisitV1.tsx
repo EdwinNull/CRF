@@ -36,6 +36,7 @@ import dayjs from 'dayjs';
 
 // 组件
 import FormSection from '../../components/FormSection';
+import FormCheckboxGroupWithOther from '../../components/CheckboxGroupWithOther';
 
 // antd 6 不再从包根导出 CheckboxValueType，这里自行定义等价类型
 type CheckboxValueType = string | number | boolean;
@@ -179,7 +180,9 @@ export default function VisitV1() {
         smokingHistory: d.smokingHistory,
         drinkingHistory: d.drinkingHistory,
         dietHabit: d.dietHabit ?? [],
+        dietHabitOther: d.dietHabitOther,
         livingEnvironment: d.livingEnvironment ?? [],
+        livingEnvironmentOther: d.livingEnvironmentOther,
         climate: d.climate ?? [],
       },
       vital: visit.vitalSigns,
@@ -412,12 +415,20 @@ export default function VisitV1() {
           )}
 
           <Space size={24} wrap align="start">
-            <Form.Item name={['d', 'dietHabit']} label="饮食习惯" initialValue={[]}>
-              <Checkbox.Group options={DIET_HABIT as unknown as string[]} />
-            </Form.Item>
-            <Form.Item name={['d', 'livingEnvironment']} label="居住环境" initialValue={[]}>
-              <Checkbox.Group options={LIVING_ENVIRONMENT as unknown as string[]} />
-            </Form.Item>
+            <FormCheckboxGroupWithOther
+              name={['d', 'dietHabit']}
+              otherName={['d', 'dietHabitOther']}
+              label="饮食习惯"
+              options={DIET_HABIT}
+              otherRequiredMessage="请注明其他饮食习惯"
+            />
+            <FormCheckboxGroupWithOther
+              name={['d', 'livingEnvironment']}
+              otherName={['d', 'livingEnvironmentOther']}
+              label="居住环境"
+              options={LIVING_ENVIRONMENT}
+              otherRequiredMessage="请注明其他居住环境"
+            />
             <Form.Item name={['d', 'climate']} label="居住地气候" initialValue={[]}>
               <Checkbox.Group options={CLIMATE as unknown as string[]} />
             </Form.Item>

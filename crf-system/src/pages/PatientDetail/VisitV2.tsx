@@ -13,12 +13,12 @@
  *  9. 药物回收与发放 DrugRecoveryForm
  * 10. 疗效评估 EfficacyForm（baseline 取 V1 中医证候总分，current 实时监听 tcm.total）
  */
-import { useEffect, useState, useRef } from 'react';
-import { DatePicker, Form, Radio, Space, Typography, message } from 'antd';
+import { useEffect, useState } from 'react';
+import { DatePicker, Form, Radio, Space, Typography, Button, message } from 'antd';
 import dayjs, { type Dayjs } from 'dayjs';
 import { usePatient } from '../../utils/usePatient';
 import { usePatientStore } from '../../store/PatientContext';
-import { emptyVisit, zeroMed, aeId } from '../../mock/patients';
+import { emptyVisit, zeroMed, aeId, medId } from '../../mock/patients';
 import type {
   VisitData,
   VitalSigns,
@@ -31,6 +31,7 @@ import type {
   EfficacyAssessment,
 } from '../../types/visit';
 import type { AdverseEvent } from '../../types/adverseEvent';
+import type { ConcomitantMed } from '../../types/concomitantMed';
 import FormSection from '../../components/FormSection';
 import VitalSignsForm from '../../components/VitalSignsForm';
 import VASSlider from '../../components/VASSlider';
@@ -42,6 +43,7 @@ import DrugRecoveryForm from '../../components/DrugRecoveryForm';
 import EfficacyForm from '../../components/EfficacyForm';
 import VisitFormFooter from '../../components/VisitFormFooter';
 import AdverseEventModal from '../../components/AdverseEventModal';
+import ConcomitantMedModal from '../../components/ConcomitantMedModal';
 
 const { Title } = Typography;
 
@@ -87,7 +89,7 @@ const DEFAULT_FOUR: SymptomFourScale = {
 const DEFAULT_RQLQ: RQLQScores = {
   activityLimit: [0, 0, 0], sleep: [0, 0, 0],
   nonNasalEye: [0, 0, 0, 0, 0, 0, 0], practicalProblems: [0, 0, 0],
-  nasalSymptoms: [0, 0, 0, 0], eyeSymptoms: [0, 0, 0, 0], emotion: [0, 0, 0, 0], total: 0,
+  nasalSymptoms: [0, 0, 0, 0], eyeSymptoms: [0, 0, 0, 0], emotion: [0, 0, 0], total: 0,
 };
 const DEFAULT_TCM: TCMScores = {
   nasalItch: 0, sneeze: 0, rhinorrhea: 0, nasalCongestion: 0,
@@ -108,22 +110,9 @@ export default function VisitV2() {
   // 疗效基线：V1 中医证候总分
   const baselineScore = patient?.visits['V1']?.tcmScores.total ?? 0;
 
-  /* ---------------- 不良事件弹窗触发 ---------------- */
-  // 用户勾选"上次访视后是否发生不良事件 = 是"时，自动弹出 AE 表单。
-  // - 保存后 dispatch ADD_ADVERSE_EVENT，写入"不良事件"页面
-  // - 取消则把 hasAdverseEvent 复位为 false，避免误记录
+  /* ---------------- 不良事件 / 合并用药弹窗触发 ---------------- */
   const [aeModalOpen, setAeModalOpen] = useState(false);
-  // 监听 hasAdverseEvent：仅 false→true 时打开（避免初次回填/取消时重弹）
-  const hasAE = Form.useWatch('hasAdverseEvent', form);
-  const prevHasAERef = useRef<boolean | undefined>(undefined);
-  useEffect(() => {
-    const prev = prevHasAERef.current;
-    prevHasAERef.current = hasAE;
-    if (locked) return; // 已提交的访视不再触发
-    if (prev === false && hasAE === true) {
-      setAeModalOpen(true);
-    }
-  }, [hasAE, locked]);
+  const [cmModalOpen, setCmModalOpen] = useState(false);
 
   const handleAESave = (payload: AdverseEvent) => {
     if (!patient) return;
@@ -132,14 +121,31 @@ export default function VisitV2() {
       : 1;
     const next: AdverseEvent = { ...payload, id: aeId(), seqNo };
     dispatch({ type: 'ADD_ADVERSE_EVENT', payload: { patientId: patient.id, event: next } });
+    // 保存后保持"是"状态，可继续新增
+    form.setFieldValue('hasAdverseEvent', true);
     setAeModalOpen(false);
     message.success(`已同步新增不良事件（编号 ${seqNo}）`);
   };
   const handleAECancel = () => {
     setAeModalOpen(false);
-    // 用户取消则把 Radio 复位为"否"，避免误勾
-    form.setFieldValue('hasAdverseEvent', false);
-    prevHasAERef.current = false;
+    // 取消时保持"是"状态（因为可能有多条不良事件要记录）
+  };
+
+  const handleCMSave = (payload: ConcomitantMed) => {
+    if (!patient) return;
+    const seqNo = patient.concomitantMeds.length
+      ? Math.max(...patient.concomitantMeds.map((x) => x.seqNo)) + 1
+      : 1;
+    const next: ConcomitantMed = { ...payload, id: medId(), seqNo };
+    dispatch({ type: 'ADD_CONCOMITANT_MED', payload: { patientId: patient.id, med: next } });
+    // 保存后保持"是"状态，可继续新增
+    form.setFieldValue('hasNewConcomitantMed', true);
+    setCmModalOpen(false);
+    message.success(`已同步新增合并用药（编号 ${seqNo}）`);
+  };
+  const handleCMCancel = () => {
+    setCmModalOpen(false);
+    // 取消时保持"是"状态（因为可能有多条合并用药要记录）
   };
 
   // 初始化：把访视对象按命名空间回填进 Form，缺失给默认值
@@ -229,27 +235,29 @@ export default function VisitV2() {
 
       {/* 3. 上次访视后情况 */}
       <FormSection title="上次访视后情况" defaultActive>
-        <Space size={56} wrap>
+        <Space size={24} wrap>
           <Form.Item name="hasAdverseEvent" label="是否发生不良事件" style={{ marginBottom: 0 }}>
-            <Radio.Group
-              options={[
-                { label: '是', value: true },
-                { label: '否', value: false },
-              ]}
-              optionType="button"
-              buttonStyle="solid"
-            />
+            <Radio.Group disabled={locked} optionType="button" buttonStyle="solid">
+              <Radio.Button value={true} onClick={() => !locked && setAeModalOpen(true)}>是</Radio.Button>
+              <Radio.Button value={false}>否</Radio.Button>
+            </Radio.Group>
           </Form.Item>
+          {!locked && (
+            <Button type="link" onClick={() => setAeModalOpen(true)} style={{ padding: 0 }}>
+              + 新增不良事件
+            </Button>
+          )}
           <Form.Item name="hasNewConcomitantMed" label="是否合并用药变化" style={{ marginBottom: 0 }}>
-            <Radio.Group
-              options={[
-                { label: '是', value: true },
-                { label: '否', value: false },
-              ]}
-              optionType="button"
-              buttonStyle="solid"
-            />
+            <Radio.Group disabled={locked} optionType="button" buttonStyle="solid">
+              <Radio.Button value={true} onClick={() => !locked && setCmModalOpen(true)}>是</Radio.Button>
+              <Radio.Button value={false}>否</Radio.Button>
+            </Radio.Group>
           </Form.Item>
+          {!locked && (
+            <Button type="link" onClick={() => setCmModalOpen(true)} style={{ padding: 0 }}>
+              + 新增合并用药
+            </Button>
+          )}
         </Space>
       </FormSection>
 
@@ -310,6 +318,12 @@ export default function VisitV2() {
       initial={null}
       onSave={handleAESave}
       onCancel={handleAECancel}
+    />
+    <ConcomitantMedModal
+      open={cmModalOpen}
+      initial={null}
+      onSave={handleCMSave}
+      onCancel={handleCMCancel}
     />
     </>
   );

@@ -16,7 +16,7 @@ function emptyScores(): Omit<RQLQScores, 'total'> {
     practicalProblems: [0, 0, 0],
     nasalSymptoms: [0, 0, 0, 0],
     eyeSymptoms: [0, 0, 0, 0],
-    emotion: [0, 0, 0, 0],
+    emotion: [0, 0, 0],
   };
 }
 
@@ -131,7 +131,7 @@ const RQLQForm: React.FC<RQLQFormProps> = ({ value, onChange, disabled }) => {
           RQLQ 总分：{total}
         </Typography.Text>
         <Typography.Text type="secondary" style={{ marginLeft: 8 }}>
-          （28 题之和）
+          （27 题之和）
         </Typography.Text>
       </div>
     </div>

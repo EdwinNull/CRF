@@ -46,7 +46,7 @@ export function sumNumbers(arr: number[]): number {
   return arr.reduce((a, b) => a + (Number.isFinite(b) ? b : 0), 0);
 }
 
-/** RQLQ 总分 = 28 项之和 */
+/** RQLQ 总分 = 27 项之和 */
 export function calcRQLQTotal(s: Omit<RQLQScores, 'total'>): number {
   return sumNumbers([
     ...s.activityLimit,
